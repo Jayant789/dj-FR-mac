@@ -27,8 +27,11 @@ def video_feed(request):
         # New functionality with YOLO model on camera feed
         video_camera = VideoCamera(camera_index)
 
+        model_file = "gocolab.pt"
+        model_path = os.path.join(os.path.dirname(__file__), model_file)
+
         response = StreamingHttpResponse(
-            generate_yolo_frames(video_camera),
+            generate_yolo_frames(video_camera, model_path),
             content_type="multipart/x-mixed-replace;boundary=frame",
         )
     else:
@@ -39,11 +42,7 @@ def video_feed(request):
     return response
 
 
-def generate_yolo_frames(video_camera):
-    model_path = os.path.join(
-        r"C:\Users\jayan\Desktop\Argenbright\Spill and Leaks", "gocolab.pt"
-    )
-
+def generate_yolo_frames(video_camera, model_path):
     # Load a model
     yolo_model = YOLO(model_path)  # load a custom model
 
