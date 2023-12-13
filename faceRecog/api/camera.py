@@ -41,10 +41,10 @@ class VideoCamera(object):
 
         self.sfr.load_encoding_images(images_folder_path)
         print(camera_index)
-        if camera_index == 1:
-            camera_index = "rtsp://admin:Admin123@192.168.0.163:554/streaming/channels/201"
-        else:
-            camera_index = "rtsp://admin:Admin123@192.168.0.163:554/streaming/channels/101"
+        # if camera_index == 1:
+        #     camera_index = "rtsp://admin:Admin123@192.168.0.163:554/streaming/channels/201"
+        # else:
+        #     camera_index = "rtsp://admin:Admin123@192.168.0.163:554/streaming/channels/101"
         self.cap = cv2.VideoCapture(camera_index, cv2.CAP_ANY)
         # self.cap.set(cv2.CAP_PROP_FPS, frame_rate)  # Set the frame rate
         self.start_time = time.time()

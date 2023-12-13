@@ -19,6 +19,7 @@ def video_feed(request):
     if model_type == "FR":
         # Original functionality
         video_camera = VideoCamera(camera_index)
+        print("FR")
         response = StreamingHttpResponse(
             video_camera.generate_frames(),
             content_type="multipart/x-mixed-replace;boundary=frame",
@@ -44,15 +45,18 @@ def video_feed(request):
 
 def generate_yolo_frames(video_camera, model_path):
     # Load a model
+    print("SD")
     yolo_model = YOLO(model_path)  # load a custom model
 
-    threshold = 0.1
+    threshold = 0.
 
     while True:
-        frame = video_camera.get_frame()
-
+        ret, frame = video_camera.cap.read()
+        if not ret:
+            break
+        #print(frame)
         results = yolo_model(frame)[0]
-
+        #print(results)
         for result in results.boxes.data.tolist():
             x1, y1, x2, y2, score, class_id = result
 
@@ -71,11 +75,13 @@ def generate_yolo_frames(video_camera, model_path):
                     cv2.LINE_AA,
                 )
 
-        _, jpeg = cv2.imencode(".jpg", frame)
-        frame_bytes = jpeg.tobytes()
-        yield (
-            b"--frame\r\n"
-            b"Content-Type: image/jpeg\r\n\r\n" + frame_bytes + b"\r\n\r\n"
-        )
+        frame = cv2.resize(frame, (720, 360))
+        ret, buffer = cv2.imencode(".jpg", frame)
+        if not ret:
+            break
+        
+        #print(frame.shape)
+        frame = buffer.tobytes()
+        yield (b"--frame\r\n" b"Content-Type: image/jpeg\r\n\r\n" + frame + b"\r\n")
 
     # The generator function will keep running indefinitely, providing frames for the streaming response.
