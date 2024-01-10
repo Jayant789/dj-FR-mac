@@ -42,9 +42,9 @@ class VideoCamera(object):
         self.sfr.load_encoding_images(images_folder_path)
         print(camera_index)
         if camera_index == 1:
-            camera_index = "rtsp://admin:Admin123@192.168.0.162:554/streaming/channels/201"
+            camera_index = "rtsp://admin:Admin123@192.168.0.36:554/streaming/channels/201"
         else:
-            camera_index = "rtsp://admin:Admin123@192.168.0.162:554/streaming/channels/101"
+            camera_index = "rtsp://admin:Admin123@192.168.0.36:554/streaming/channels/101"
         self.cap = cv2.VideoCapture(camera_index, cv2.CAP_ANY)
         # self.cap.set(cv2.CAP_PROP_FPS, frame_rate)  # Set the frame rate
         self.start_time = time.time()
@@ -128,10 +128,10 @@ class VideoCamera(object):
                             timestamp_id = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
                             #Add the document to the "suspects" collection using the timestamp as the ID
-                            self.db.collection("Suspects").document(timestamp_id).set(
-                              document_data
-                            )
-                            print(name + " Updated in Database")
+                            # self.db.collection("Suspects").document(timestamp_id).set(
+                            #   document_data
+                            # )
+                            # print(name + " Updated in Database")
 
                             # Update the last_data_time
                             self.last_data_time = current_time
