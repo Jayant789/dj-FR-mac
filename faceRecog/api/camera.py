@@ -31,7 +31,23 @@ class VideoCamera(object):
             )
             firebase_admin.initialize_app(cred)
             VideoCamera.firebase_initialized = True
+            print("firebase intialised")
 
+        
+        print(camera_index)
+        # if camera_index == 1:
+        #     camera_index = "rtsp://admin:Admin123@192.168.0.36:554/streaming/channels/201"
+        # else:
+        #     camera_index = "rtsp://admin:Admin123@192.168.0.36:554/streaming/channels/101"
+        self.cap = cv2.VideoCapture(camera_index, cv2.CAP_ANY)
+        # self.cap.set(cv2.CAP_PROP_FPS, frame_rate)  # Set the frame rate
+        
+
+    def __del__(self):
+        self.cap.release()
+
+    def generate_frames(self, skip_frames=2):
+        print("Face Recognition")
         self.db = firestore.client()
         self.sfr = SimpleFacerec()
         script_directory = os.path.dirname(os.path.abspath(__file__))
@@ -40,23 +56,12 @@ class VideoCamera(object):
         images_folder_path = os.path.join(script_directory, "images")
 
         self.sfr.load_encoding_images(images_folder_path)
-        print(camera_index)
-        if camera_index == 1:
-            camera_index = "rtsp://admin:Admin123@192.168.0.36:554/streaming/channels/201"
-        else:
-            camera_index = "rtsp://admin:Admin123@192.168.0.36:554/streaming/channels/101"
-        self.cap = cv2.VideoCapture(camera_index, cv2.CAP_ANY)
-        # self.cap.set(cv2.CAP_PROP_FPS, frame_rate)  # Set the frame rate
+        frame_count = 0
+        
         self.start_time = time.time()
         self.frames_processed = 0
         self.last_data_time = time.time()
 
-    def __del__(self):
-        self.cap.release()
-
-    def generate_frames(self, skip_frames=2):
-        frame_count = 0
-        
         while True:
             ret, frame = self.cap.read()
             if not ret:

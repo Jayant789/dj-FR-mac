@@ -53,7 +53,7 @@ def video_feed(request):
 def generate_yolo_frames(video_camera, model_path):
     yolo_model = YOLO(model_path)
     threshold = 0
-
+    print("Spill")
     while True:
         ret, frame = video_camera.cap.read()
         if not ret:
@@ -89,7 +89,7 @@ def generate_anpr_frames(video_camera, model_path):
     reader = easyocr.Reader(['en'])
     yolo_model = YOLO(model_path)
     threshold=0.1
-    
+    print("ANPR")
     while True:
         ret, frame = video_camera.cap.read()
         if not ret:
