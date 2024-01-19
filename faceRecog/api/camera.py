@@ -1,8 +1,8 @@
 import cv2
-from .simple_facerec import SimpleFacerec  # Import your face recognition logic here
+from .simple_facerec import SimpleFacerec
 import firebase_admin
 from firebase_admin import credentials
-from firebase_admin import firestore
+from firebase_admin import db  # Import the Realtime Database module
 from datetime import datetime
 import time
 import os
@@ -29,11 +29,15 @@ class VideoCamera(object):
                     "universe_domain": "googleapis.com",
                 }
             )
-            firebase_admin.initialize_app(cred)
+            firebase_admin.initialize_app(
+                cred,
+                {
+                    "databaseURL": "https://console.firebase.google.com/u/2/project/abl-security-b033d/database/abl-security-b033d-default-rtdb/data/~2F"
+                },
+            )
             VideoCamera.firebase_initialized = True
-            print("firebase intialised")
+            print("Firebase initialized")
 
-        
         print(camera_index)
         # if camera_index == 1:
         #     camera_index = "rtsp://admin:Admin123@192.168.0.36:554/streaming/channels/201"
@@ -41,14 +45,15 @@ class VideoCamera(object):
         #     camera_index = "rtsp://admin:Admin123@192.168.0.36:554/streaming/channels/101"
         self.cap = cv2.VideoCapture(camera_index, cv2.CAP_ANY)
         # self.cap.set(cv2.CAP_PROP_FPS, frame_rate)  # Set the frame rate
-        
 
     def __del__(self):
         self.cap.release()
 
     def generate_frames(self, skip_frames=2):
         print("Face Recognition")
-        self.db = firestore.client()
+        self.rt_db = db.reference(
+            "Suspects"
+        )  # Reference to the 'Suspects' node in Realtime Database
         self.sfr = SimpleFacerec()
         script_directory = os.path.dirname(os.path.abspath(__file__))
 
@@ -57,7 +62,6 @@ class VideoCamera(object):
 
         self.sfr.load_encoding_images(images_folder_path)
         frame_count = 0
-        
         self.start_time = time.time()
         self.frames_processed = 0
         self.last_data_time = time.time()
@@ -66,7 +70,7 @@ class VideoCamera(object):
             ret, frame = self.cap.read()
             if not ret:
                 break
-            
+
             frame_count += 1
             self.frames_processed += 1
             elapsed_time = time.time() - self.start_time
@@ -85,8 +89,6 @@ class VideoCamera(object):
 
             # Skip frames if needed
             if frame_count % skip_frames == 0:
-                # Get the current frame rate
-
                 (
                     face_locations,
                     face_names,
@@ -97,15 +99,14 @@ class VideoCamera(object):
                     face_locations, face_names, face_accuracies
                 ):
                     y1, x2, y2, x1 = face_loc[0], face_loc[1], face_loc[2], face_loc[3]
-                    resize=0.5
+                    resize = 0.5
                     y1 = int(y1 / resize)
                     x2 = int(x2 / resize)
                     y2 = int(y2 / resize)
                     x1 = int(x1 / resize)
 
-                    if name == "Unknown" or accuracy<=50:
+                    if name == "Unknown" or accuracy <= 50:
                         cv2.rectangle(frame, (x1, y1), (x2, y2), (128, 128, 128), 4)
-
                     else:
                         display_text = f"{name} ({accuracy}%)"
                         cv2.putText(
@@ -121,30 +122,25 @@ class VideoCamera(object):
 
                         current_time = time.time()
                         if current_time - self.last_data_time >= 10:
-                            # Prepare the document data and save it to your Firestore database
-                            document_data = {
+                            # Prepare the data and push it to the Realtime Database
+                            data = {
                                 "Name": name,
                                 "Date": datetime.now().date().strftime("%Y-%m-%d"),
                                 "Time": datetime.now().time().strftime("%H:%M:%S"),
                                 "Accuracy": accuracy,
                             }
 
-                            # Use a formatted timestamp as the document ID
-                            timestamp_id = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-                            #Add the document to the "suspects" collection using the timestamp as the ID
-                            # self.db.collection("Suspects").document(timestamp_id).set(
-                            #   document_data
-                            # )
-                            # print(name + " Updated in Database")
+                            # Push the data to the Realtime Database
+                            new_suspect_ref = self.rt_db.push(data)
+                            print(f"New Suspect added with ID: {new_suspect_ref.key}")
 
                             # Update the last_data_time
                             self.last_data_time = current_time
+
             frame = cv2.resize(frame, (720, 360))
             ret, buffer = cv2.imencode(".jpg", frame)
             if not ret:
                 break
-            
-            #print(frame.shape)
+
             frame = buffer.tobytes()
             yield (b"--frame\r\n" b"Content-Type: image/jpeg\r\n\r\n" + frame + b"\r\n")
